@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mixture's House</title>
+    <title>The Adventures of Mixture</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; touch-action: none; }
         canvas { display: block; margin: auto; background: #111; max-width: 100%; height: auto; }
@@ -26,16 +26,16 @@ const ctx = canvas.getContext('2d');
 
 canvas.width = 800; canvas.height = 1000;
 
-// تحميل الصور - تأكد من رفع صورة الشخصية باسم player.png أو غيرها هنا
+// تحميل الصور
 const mapImg = new Image(); 
 mapImg.src = 'Sans titre 33_20260416225734.png'; 
 
 const playerImg = new Image();
-playerImg.src = '1000002489.png'; // اسم صورة بطلنا Mixture
+playerImg.src = 'player.png'; // تأكد أن الصورة مرفوعة بهذا الاسم تماماً
 
-let player = { x: 400, y: 500, speed: 10, moving: null };
+let player = { x: 380, y: 800, speed: 8, moving: null };
 
-// برمجة الأزرار لتعمل على اللمس (Mobile)
+// برمجة اللمس للهواتف
 const setupBtn = (id, dir) => {
     const el = document.getElementById(id);
     el.addEventListener('touchstart', (e) => { e.preventDefault(); player.moving = dir; });
@@ -55,16 +55,17 @@ function gameLoop() {
 
     // 2. تحديث الحركة
     if (player.moving === 'up' && player.y > 0) player.y -= player.speed;
-    if (player.moving === 'down' && player.y < canvas.height - 50) player.y += player.speed;
+    if (player.moving === 'down' && player.y < canvas.height - 70) player.y += player.speed;
     if (player.moving === 'left' && player.x > 0) player.x -= player.speed;
-    if (player.moving === 'right' && player.x < canvas.width - 50) player.x += player.speed;
+    if (player.moving === 'right' && player.x < canvas.width - 70) player.x += player.speed;
 
-    // 3. رسم Mixture (أو مربع إذا لم تظهر الصورة)
-    if (playerImg.complete && playerImg.width > 0) {
+    // 3. رسم الشخصية
+    if (playerImg.complete && playerImg.naturalWidth !== 0) {
         ctx.drawImage(playerImg, player.x, player.y, 80, 80);
     } else {
+        // إذا لم تظهر الصورة، ارسم مربعاً لكي لا تتوقف اللعبة
         ctx.fillStyle = "red";
-        ctx.fillRect(player.x, player.y, 50, 50);
+        ctx.fillRect(player.x, player.y, 40, 40);
     }
     
     requestAnimationFrame(gameLoop);
