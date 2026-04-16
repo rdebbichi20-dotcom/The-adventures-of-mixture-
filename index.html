@@ -6,22 +6,22 @@
     <title>The Adventures of Mixture</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: sans-serif; touch-action: none; color: white; }
-        canvas { display: block; margin: auto; background: #000; max-width: 100%; height: auto; image-rendering: pixelated; }
+        canvas { display: block; margin: auto; background: #000; max-content: 100%; height: auto; image-rendering: pixelated; }
         #start-screen { position: absolute; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 500; }
         .start-btn { padding: 20px 40px; font-size: 24px; background: #8b0000; color: white; border: none; cursor: pointer; border-radius: 10px; }
-        #controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: repeat(3, 70px); grid-gap: 10px; z-index: 100; opacity: 0.7; }
-        .btn { width: 70px; height: 70px; background: #333; color: white; border: 2px solid #fff; border-radius: 50%; font-size: 30px; display: flex; align-items: center; justify-content: center; user-select: none; }
+        #controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: repeat(3, 70px); grid-gap: 10px; z-index: 100; opacity: 0.8; }
+        .btn { width: 70px; height: 70px; background: #222; color: white; border: 2px solid #fff; border-radius: 50%; font-size: 30px; display: flex; align-items: center; justify-content: center; user-select: none; }
         video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; display: none; z-index: 400; }
     </style>
 </head>
 <body>
 
 <div id="start-screen">
-    <h1 style="color:red">Mixture: Chapter 1</h1>
+    <h1 style="color:red">The Adventures of Mixture</h1>
     <button class="start-btn" onclick="initGame()">إضغط لبدء اللعبة 💠</button>
 </div>
 
-<video id="intro-video" src="1000002492.mp4"></video>
+<video id="intro-video" src="1000002492.mp4" preload="auto"></video>
 
 <div id="controls" style="display:none;">
     <div></div><div class="btn" ontouchstart="move('up')" ontouchend="stop()">↑</div><div></div>
@@ -41,8 +41,12 @@ const controls = document.getElementById('controls');
 
 canvas.width = 800; canvas.height = 1000;
 
-const mapImg = new Image(); mapImg.src = 'Sans titre 33_20260416225734.png';
-const playerImg = new Image(); playerImg.src = 'player.png';
+// التأكد من الأسماء الصحيحة للملفات
+const mapImg = new Image(); 
+mapImg.src = 'Sans titre 33_20260416225734.png'; 
+
+const playerImg = new Image(); 
+playerImg.src = '1000002489.png'; // الصورة التي رفعتها للبطل
 
 let player = { x: 370, y: 850, speed: 7, moving: null };
 let gameRunning = false;
@@ -50,13 +54,26 @@ let gameRunning = false;
 function initGame() {
     startScreen.style.display = 'none';
     video.style.display = 'block';
-    video.play();
-    video.onended = () => {
-        video.style.display = 'none';
-        controls.style.display = 'grid';
-        gameRunning = true;
-        requestAnimationFrame(gameLoop);
-    };
+    
+    // محاولة تشغيل الفيديو مع معالجة الأخطاء
+    let playPromise = video.play();
+    if (playPromise !== undefined) {
+        playPromise.then(_ => {
+            video.onended = () => {
+                video.style.display = 'none';
+                controls.style.display = 'grid';
+                gameRunning = true;
+                requestAnimationFrame(gameLoop);
+            };
+        }).catch(error => {
+            // في حال فشل الفيديو، ابدأ اللعبة مباشرة
+            console.log("Video failed, starting game...");
+            video.style.display = 'none';
+            controls.style.display = 'grid';
+            gameRunning = true;
+            requestAnimationFrame(gameLoop);
+        });
+    }
 }
 
 function move(dir) { player.moving = dir; }
@@ -66,8 +83,15 @@ function gameLoop() {
     if(!gameRunning) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // رسم الخريطة
-    ctx.drawImage(mapImg, 0, 0, canvas.width, canvas.height);
+    // رسم الخريطة (فقط إذا اكتمل تحميل الصورة)
+    if(mapImg.complete) {
+        ctx.drawImage(mapImg, 0, 0, canvas.width, canvas.height);
+    } else {
+        ctx.fillStyle = "#111";
+        ctx.fillRect(0,0, canvas.width, canvas.height);
+        ctx.fillStyle = "white";
+        ctx.fillText("جاري تحميل الخريطة...", 350, 500);
+    }
     
     // تحريك اللاعب
     if (player.moving === 'up' && player.y > 0) player.y -= player.speed;
@@ -76,11 +100,12 @@ function gameLoop() {
     if (player.moving === 'right' && player.x < canvas.width - 80) player.x += player.speed;
     
     // رسم Mixture
-    ctx.drawImage(playerImg, player.x, player.y, 80, 80);
+    if(playerImg.complete) {
+        ctx.drawImage(playerImg, player.x, player.y, 80, 80);
+    }
     
     requestAnimationFrame(gameLoop);
 }
 </script>
 </body>
 </html>
-
