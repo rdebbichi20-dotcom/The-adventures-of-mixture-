@@ -3,24 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Adventures of Mixture - Chapter 1</title>
+    <title>The Adventures of Mixture</title>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', sans-serif; touch-action: none; }
-        canvas { display: block; margin: auto; background: #000; border: 2px solid #333; max-width: 100%; height: auto; }
-        #controls { position: absolute; bottom: 20px; left: 20px; display: grid; grid-template-columns: repeat(3, 60px); grid-gap: 10px; z-index: 100; }
-        .btn { width: 60px; height: 60px; background: rgba(139, 0, 0, 0.6); color: white; border: 2px solid #fff; border-radius: 10px; font-size: 24px; display: flex; align-items: center; justify-content: center; user-select: none; }
-        #intro-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 200; background: #000; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: sans-serif; touch-action: none; color: white; }
+        canvas { display: block; margin: auto; background: #000; max-width: 100%; height: auto; image-rendering: pixelated; }
+        #start-screen { position: absolute; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 500; }
+        .start-btn { padding: 20px 40px; font-size: 24px; background: #8b0000; color: white; border: none; cursor: pointer; border-radius: 10px; }
+        #controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: repeat(3, 70px); grid-gap: 10px; z-index: 100; opacity: 0.7; }
+        .btn { width: 70px; height: 70px; background: #333; color: white; border: 2px solid #fff; border-radius: 50%; font-size: 30px; display: flex; align-items: center; justify-content: center; user-select: none; }
+        video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; display: none; z-index: 400; }
     </style>
 </head>
 <body>
 
-<video id="intro-video" src="1000002492.mp4" autoplay onended="startActualGame()"></video>
+<div id="start-screen">
+    <h1 style="color:red">Mixture: Chapter 1</h1>
+    <button class="start-btn" onclick="initGame()">إضغط لبدء اللعبة 💠</button>
+</div>
+
+<video id="intro-video" src="1000002492.mp4"></video>
 
 <div id="controls" style="display:none;">
-    <div></div><div class="btn" onmousedown="move('up')" onmouseup="stop()" ontouchstart="move('up')" ontouchend="stop()">↑</div><div></div>
-    <div class="btn" onmousedown="move('left')" onmouseup="stop()" ontouchstart="move('left')" ontouchend="stop()">←</div>
-    <div class="btn" onmousedown="move('down')" onmouseup="stop()" ontouchstart="move('down')" ontouchend="stop()">↓</div>
-    <div class="btn" onmousedown="move('right')" onmouseup="stop()" ontouchstart="move('right')" ontouchend="stop()">→</div>
+    <div></div><div class="btn" ontouchstart="move('up')" ontouchend="stop()">↑</div><div></div>
+    <div class="btn" ontouchstart="move('left')" ontouchend="stop()">←</div>
+    <div class="btn" ontouchstart="move('down')" ontouchend="stop()">↓</div>
+    <div class="btn" ontouchstart="move('right')" ontouchend="stop()">→</div>
 </div>
 
 <canvas id="gameCanvas"></canvas>
@@ -29,43 +36,51 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const video = document.getElementById('intro-video');
+const startScreen = document.getElementById('start-screen');
 const controls = document.getElementById('controls');
 
-canvas.width = 800; canvas.height = 1000; // مساحة الخريطة التي رسمتها
+canvas.width = 800; canvas.height = 1000;
 
-const mapImg = new Image(); mapImg.src = '1000002512.png'; // رسمة المنزل
-const playerImg = new Image(); playerImg.src = 'player.png'; // صورة Mixture
+const mapImg = new Image(); mapImg.src = 'Sans titre 33_20260416225734.png';
+const playerImg = new Image(); playerImg.src = 'player.png';
 
-let player = { x: 400, y: 900, speed: 5, moving: null };
+let player = { x: 370, y: 850, speed: 7, moving: null };
+let gameRunning = false;
 
-function startActualGame() {
-    video.style.display = 'none';
-    controls.style.display = 'grid';
-    requestAnimationFrame(gameLoop);
+function initGame() {
+    startScreen.style.display = 'none';
+    video.style.display = 'block';
+    video.play();
+    video.onended = () => {
+        video.style.display = 'none';
+        controls.style.display = 'grid';
+        gameRunning = true;
+        requestAnimationFrame(gameLoop);
+    };
 }
 
 function move(dir) { player.moving = dir; }
 function stop() { player.moving = null; }
 
-function updatePlayer() {
-    if (player.moving === 'up' && player.y > 0) player.y -= player.speed;
-    if (player.moving === 'down' && player.y < canvas.height - 60) player.y += player.speed;
-    if (player.moving === 'left' && player.x > 0) player.x -= player.speed;
-    if (player.moving === 'right' && player.x < canvas.width - 60) player.x += player.speed;
-}
-
 function gameLoop() {
+    if(!gameRunning) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // رسم خريطة المنزل
+    // رسم الخريطة
     ctx.drawImage(mapImg, 0, 0, canvas.width, canvas.height);
     
-    // رسم Mixture
-    ctx.drawImage(playerImg, player.x, player.y, 70, 70);
+    // تحريك اللاعب
+    if (player.moving === 'up' && player.y > 0) player.y -= player.speed;
+    if (player.moving === 'down' && player.y < canvas.height - 80) player.y += player.speed;
+    if (player.moving === 'left' && player.x > 0) player.x -= player.speed;
+    if (player.moving === 'right' && player.x < canvas.width - 80) player.x += player.speed;
     
-    updatePlayer();
+    // رسم Mixture
+    ctx.drawImage(playerImg, player.x, player.y, 80, 80);
+    
     requestAnimationFrame(gameLoop);
 }
 </script>
 </body>
 </html>
+
