@@ -2,140 +2,69 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>The Adventures of Mixture - Chapter 1</title>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', Courier, monospace; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { border: 4px solid #333; box-shadow: 0 0 20px rgba(255,0,0,0.2); image-rendering: pixelated; max-width: 100%; height: auto; }
-        #overlay { position: absolute; width: 800px; height: 600px; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box; z-index: 10; }
-        .btn { background: #8b0000; color: white; border: none; padding: 15px 30px; font-size: 20px; cursor: pointer; margin-top: 20px; transition: 0.3s; }
-        .btn:hover { background: #ff0000; }
-        #puzzle-box { position: absolute; bottom: 50px; background: rgba(20, 0, 0, 0.9); padding: 20px; border: 2px solid #8b0000; display: none; text-align: center; z-index: 5; width: 400px; }
-        input { background: #000; color: #ff0000; border: 1px solid #8b0000; padding: 10px; width: 80%; outline: none; text-align: center; }
-        video { position: absolute; width: 100%; height: 100%; object-fit: cover; display: none; z-index: 20; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', sans-serif; touch-action: none; }
+        canvas { display: block; margin: auto; background: #000; border: 2px solid #333; max-width: 100%; height: auto; }
+        #controls { position: absolute; bottom: 20px; left: 20px; display: grid; grid-template-columns: repeat(3, 60px); grid-gap: 10px; z-index: 100; }
+        .btn { width: 60px; height: 60px; background: rgba(139, 0, 0, 0.6); color: white; border: 2px solid #fff; border-radius: 10px; font-size: 24px; display: flex; align-items: center; justify-content: center; user-select: none; }
+        #intro-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 200; background: #000; }
     </style>
 </head>
 <body>
 
-<div id="overlay">
-    <h1 style="color: #ff0000; font-size: 40px;">The Adventures of Mixture</h1>
-    <p id="story-text" style="font-size: 18px; line-height: 1.6; max-width: 80%;">
-        كان "ميكسي" يلعب مع صديقه المفضل.. وفجأة، ساد الصمت واختفى الصديق.<br>
-        لم يتبقَ سوى منزل مهجور يفوح منه الغموض.<br>
-        دخل ميكسي بحثاً عن إجابات، ولكن بمجرد دخوله.. انغلق الباب خلفه بقوة!
-    </p>
-    <button class="btn" onclick="startGame()">ابدأ المغامرة</button>
+<video id="intro-video" src="1000002492.mp4" autoplay onended="startActualGame()"></video>
+
+<div id="controls" style="display:none;">
+    <div></div><div class="btn" onmousedown="move('up')" onmouseup="stop()" ontouchstart="move('up')" ontouchend="stop()">↑</div><div></div>
+    <div class="btn" onmousedown="move('left')" onmouseup="stop()" ontouchstart="move('left')" ontouchend="stop()">←</div>
+    <div class="btn" onmousedown="move('down')" onmouseup="stop()" ontouchstart="move('down')" ontouchend="stop()">↓</div>
+    <div class="btn" onmousedown="move('right')" onmouseup="stop()" ontouchstart="move('right')" ontouchend="stop()">→</div>
 </div>
 
-<div id="puzzle-box">
-    <p id="riddle-text" style="color: #ccc;"></p>
-    <input type="text" id="answer-input" placeholder="اكتب الإجابة...">
-</div>
-
-<video id="scaryVideo" src="1000000310.mp4"></video>
 <canvas id="gameCanvas"></canvas>
 
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const overlay = document.getElementById('overlay');
-const puzzleBox = document.getElementById('puzzle-box');
-const riddleText = document.getElementById('riddle-text');
-const answerInput = document.getElementById('answer-input');
-const scaryVideo = document.getElementById('scaryVideo');
+const video = document.getElementById('intro-video');
+const controls = document.getElementById('controls');
 
-canvas.width = 800; canvas.height = 600;
+canvas.width = 800; canvas.height = 1000; // مساحة الخريطة التي رسمتها
 
-const playerImg = new Image(); playerImg.src = 'player.png';
-let gameStarted = false, currentRoom = 1, doorLocked = true;
-let player = { x: 400, y: 550, size: 70, targetY: 550 };
+const mapImg = new Image(); mapImg.src = '1000002512.png'; // رسمة المنزل
+const playerImg = new Image(); playerImg.src = 'player.png'; // صورة Mixture
 
-const puzzles = [
-    { q: "شيء له أسنان ولا يعض، ما هو؟", a: "المشط" },
-    { q: "أنا خلفك دائماً ولا تلتفت، من أنا؟", a: "ظلي" },
-    { q: "كلما أخذت مني كبرت، ما أنا؟", a: "الحفرة" },
-    { q: "أنا أسمع بلا أذنين وأتكلم بلا لسان، فمن أنا؟", a: "الصدى" },
-    { q: "يسير بلا قدمين ويدخل الأذن بلا استئذان..", a: "الصوت" },
-    { q: "شيء يملكه الفقير ويحتاجه الغني وإذا أكلته تمت، ما هو؟", a: "لاشيء" }
-];
+let player = { x: 400, y: 900, speed: 5, moving: null };
 
-function startGame() {
-    overlay.style.display = 'none';
-    gameStarted = true;
+function startActualGame() {
+    video.style.display = 'none';
+    controls.style.display = 'grid';
     requestAnimationFrame(gameLoop);
 }
 
-function drawBackground() {
-    // رسم جدران المنزل المهجور
-    ctx.fillStyle = currentRoom > 3 ? "#050000" : "#1a1212";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // رسم الأرضية (خشب قديم)
-    ctx.strokeStyle = "#2a1a1a";
-    for(let i=0; i<canvas.height; i+=40) {
-        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
-    }
+function move(dir) { player.moving = dir; }
+function stop() { player.moving = null; }
 
-    // الباب
-    ctx.fillStyle = doorLocked ? "#4b0000" : "#003300";
-    ctx.fillRect(350, 20, 100, 60); 
-    ctx.strokeStyle = "#ff0000";
-    if(doorLocked) ctx.strokeRect(350, 20, 100, 60);
+function updatePlayer() {
+    if (player.moving === 'up' && player.y > 0) player.y -= player.speed;
+    if (player.moving === 'down' && player.y < canvas.height - 60) player.y += player.speed;
+    if (player.moving === 'left' && player.x > 0) player.x -= player.speed;
+    if (player.moving === 'right' && player.x < canvas.width - 60) player.x += player.speed;
 }
 
 function gameLoop() {
-    if(!gameStarted) return;
-    drawBackground();
-
-    // حركة اللاعب (سلسة)
-    if (player.y > 100) player.y -= 1.5;
-    else if (doorLocked) {
-        puzzleBox.style.display = 'block';
-        riddleText.innerText = puzzles[currentRoom - 1].q;
-        answerInput.focus();
-    } else {
-        nextRoom();
-    }
-
-    // رسم اللاعب بظل بسيط
-    ctx.shadowBlur = 15; ctx.shadowColor = "black";
-    ctx.drawImage(playerImg, player.x - 35, player.y - 35, player.size, player.size);
-    ctx.shadowBlur = 0;
-
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // رسم خريطة المنزل
+    ctx.drawImage(mapImg, 0, 0, canvas.width, canvas.height);
+    
+    // رسم Mixture
+    ctx.drawImage(playerImg, player.x, player.y, 70, 70);
+    
+    updatePlayer();
     requestAnimationFrame(gameLoop);
-}
-
-answerInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        if (answerInput.value.trim() === puzzles[currentRoom - 1].a) {
-            doorLocked = false;
-            puzzleBox.style.display = 'none';
-            answerInput.value = "";
-        } else {
-            player.y = 550; // العودة للبداية عند الخطأ
-            answerInput.value = "";
-        }
-    }
-});
-
-function nextRoom() {
-    if (currentRoom < 6) {
-        currentRoom++;
-        player.y = 550;
-        doorLocked = true;
-    } else {
-        triggerEnding();
-    }
-}
-
-function triggerEnding() {
-    gameStarted = false;
-    ctx.fillStyle = "black";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    setTimeout(() => {
-        scaryVideo.style.display = 'block';
-        scaryVideo.play();
-    }, 1500);
 }
 </script>
 </body>
